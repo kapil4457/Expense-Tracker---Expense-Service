@@ -9,6 +9,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,7 +29,14 @@ public class ExpenseService {
     public boolean createExpense(ExpenseDto expenseDto){
         setCurrency(expenseDto);
         try{
-            expenseRepository.save(objectMapper.convertValue(expenseDto, Expense.class));
+            Expense expense = new Expense();
+            expense.setUserId(expenseDto.getUserId());
+            expense.setAmount(expenseDto.getAmount());
+            expense.setMerchant(expenseDto.getMerchant());
+            expense.setCurrency(expenseDto.getCurrency());
+            System.out.println("ExpenseDTO : "+expenseDto);
+            System.out.println("Expense : "+expense);
+            expenseRepository.save(expense);
             return true;
         }catch(Exception ex){
             return false;
@@ -42,6 +50,7 @@ public class ExpenseService {
             return false;
         }
         Expense expense = expenseFoundOpt.get();
+        expense.setUserId(expenseDto.getUserId());
         expense.setAmount(expenseDto.getAmount());
         expense.setMerchant(Strings.isNotBlank(expenseDto.getMerchant())?expenseDto.getMerchant():expense.getMerchant());
         expense.setCurrency(Strings.isNotBlank(expenseDto.getCurrency())?expenseDto.getMerchant():expense.getCurrency());
@@ -51,12 +60,22 @@ public class ExpenseService {
 
     public List<ExpenseDto> getExpenses(String userId){
         List<Expense> expenseOpt = expenseRepository.findByUserId(userId);
-        return objectMapper.convertValue(expenseOpt, new TypeReference<List<ExpenseDto>>() {});
+        List<ExpenseDto> expenseDtoList = expenseOpt.stream().map(expense ->{
+            ExpenseDto expenseDto = new ExpenseDto();
+            expenseDto.setUserId(expense.getUserId());
+            expenseDto.setAmount(expense.getAmount());
+            expenseDto.setExternalId(expense.getExternalId());
+            expenseDto.setCreatedAt(expense.getCreatedAt());
+            expenseDto.setCurrency(expense.getCurrency());
+            expenseDto.setMerchant(expense.getMerchant());
+            return expenseDto;
+        }).toList();
+        return expenseDtoList;
     }
 
     private void setCurrency(ExpenseDto expenseDto){
         if(Objects.isNull(expenseDto.getCurrency())){
-            expenseDto.setCurrency("inr");
+            expenseDto.setCurrency("INR");
         }
     }
 
